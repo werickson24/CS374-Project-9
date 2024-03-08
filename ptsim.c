@@ -1,4 +1,4 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -48,11 +48,52 @@ unsigned char get_page_table(int proc_num)
 //
 void new_process(int proc_num, int page_count)
 {
-    (void)proc_num;   // remove after implementation
-    (void)page_count; // remove after implementation
-
     // TODO
+    int page_table_created = 0;
+    //int page_table_address = 0;
+    int app_page_table;
+    //int page_address;
+
+    //Allocate app page table
+    for(int page_index = 1; page_index < PAGE_COUNT; page_index++){
+        //page_address = get_address(0, page_index);
+        if(mem[page_index] == 0){//if the page is free
+            mem[page_index] = 1;//mark as used
+            page_table_created = 1;//prove that a page was allocated
+            //create page table link
+            mem[get_address(0, proc_num + PTP_OFFSET)] = page_index;
+            break;
+        }
+    }
+    //OUT OF MEMORY ERROR
+    if(page_table_created == 0){
+        printf("OOM: proc %d: page table\n", proc_num);
+        return;
+    }
+    app_page_table = get_page_table(proc_num);
+
+    int page_sucess = 0;
+    int current_count = 0;
+    //Allocate other pages untill all have been created
+    while(current_count < page_count){
+        page_sucess = 0;
+        for(int page_index = 0; page_index < PAGE_COUNT; page_index++){
+            if(mem[page_index] == 0){
+                mem[page_index] = 1;//mark page used
+                mem[get_address(app_page_table, current_count)] = page_index; //link pages
+                current_count++;
+                page_sucess = 1;
+                break;
+            }
+        }
+        //OUT OF MEMORY ERROR
+        if(page_sucess == 0){
+            printf("OOM: proc %d: data page\n", proc_num);
+            return;
+        }
+    }
 }
+
 
 //
 // Print the free page map
@@ -63,7 +104,7 @@ void print_page_free_map(void)
 {
     printf("--- PAGE FREE MAP ---\n");
 
-    for (int i = 0; i < 64; i++) {
+    for (int i = 0; i < PAGE_COUNT; i++) {//MODIFICATION: 64 magic number to PAGE_COUNT
         int addr = get_address(0, i);
 
         printf("%c", mem[addr] == 0? '.': '#');
@@ -108,18 +149,25 @@ int main(int argc, char *argv[])
         fprintf(stderr, "usage: ptsim commands\n");
         return 1;
     }
-    
+
     initialize_mem();
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "pfm") == 0) {
+            //printf("pfm");
             print_page_free_map();
         }
         else if (strcmp(argv[i], "ppt") == 0) {
             int proc_num = atoi(argv[++i]);
+            //printf("ppt n:%d", proc_num);
             print_page_table(proc_num);
         }
-
-        // TODO: more command line arguments
+        else if (strcmp(argv[i], "np") == 0) {
+            int proc_num = atoi(argv[++i]);
+            int page_count = atoi(argv[++i]);
+            //printf("np n:%d m:%d", proc_num, page_count);
+            new_process(proc_num, page_count);
+        }
     }
+    fflush(stdout);
 }

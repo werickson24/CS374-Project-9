@@ -1,4 +1,4 @@
-CC=gcc
+﻿CC=gcc
 CCOPTS=-Wall -Wextra -Werror
 LIBS=
 
@@ -14,4 +14,3 @@ clean:
 
 %: %.c
 	$(CC) $(CCOPTS) -o $@ $< $(LIBS)
-    
